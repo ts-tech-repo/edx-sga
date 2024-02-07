@@ -28,7 +28,11 @@ the SGA XBlock in devstack.**
 
     ```
     MEDIA_ROOT = "/edx/var/edxapp/uploads"
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    STORAGES = {
+       "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+    }
+}
     ```
     
     You can also configure S3 to be used as the file storage backend. Ask a fellow developer or devops for the
