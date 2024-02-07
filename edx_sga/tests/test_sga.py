@@ -16,11 +16,13 @@ from ddt import data, ddt, unpack
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.timezone import now as django_now
-from opaque_keys.edx.locations import Location
+from opaque_keys.edx.locations import BlockUsageLocator
 from opaque_keys.edx.locator import CourseLocator
 from workbench.runtime import WorkbenchRuntime
 from xblock.field_data import DictFieldData
 from xblock.fields import DateTime
+from xblock.runtime import DictKeyValueStore, KvsFieldData
+from xblock.test.tools import TestRuntime
 
 from edx_sga.constants import ATTR_KEY_USER_IS_STAFF
 from edx_sga.tests.common import DummyResource, TempfileMixin
@@ -141,7 +143,9 @@ class StaffGradedAssignmentMockedTests(TempfileMixin):
 
         field_data = DictFieldData(kwargs)
         block = cls(self.runtime, field_data, self.scope_ids)
-        block.location = Location("foo", "bar", "baz", "category", "name", "revision")
+        runtime = TestRuntime(services={'field-data': KvsFieldData(kvs=DictKeyValueStore())})
+        def_id = runtime.id_generator.create_definition("sga")
+        block.location = BlockUsageLocator(CourseLocator("foo","bar","baz"), "sga", def_id)
 
         block.xmodule_runtime = self.runtime
         block.course_id = self.course_id
@@ -215,7 +219,7 @@ class StaffGradedAssignmentMockedTests(TempfileMixin):
             assert template_arg == "templates/staff_graded_assignment/show.html"
             context = render_template.call_args[0][1]
             assert context["is_course_staff"] is True
-            assert context["id"] == "name"
+            assert context["id"] == "d_0"
             student_state = json.loads(context["student_state"])
             assert student_state["uploaded"] is None
             assert student_state["annotated"] is None
@@ -275,7 +279,7 @@ class StaffGradedAssignmentMockedTests(TempfileMixin):
                 assert template_arg == "templates/staff_graded_assignment/show.html"
                 context = render_template.call_args[0][1]
                 assert context["is_course_staff"] is True
-                assert context["id"] == "name"
+                assert context["id"] == "d_0"
                 student_state = json.loads(context["student_state"])
                 assert student_state["uploaded"] == {"filename": "foo.txt"}
                 assert student_state["graded"] == {"comment": "ok", "score": 10}

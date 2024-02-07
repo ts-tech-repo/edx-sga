@@ -34,7 +34,7 @@ from xblock.core import XBlock
 from xblock.exceptions import JsonHandlerError
 from xblock.fields import DateTime, Float, Integer, Scope, String
 from web_fragments.fragment import Fragment
-from xblockutils.studio_editable import StudioEditableXBlockMixin
+from xblock.utils.studio_editable import StudioEditableXBlockMixin
 from xmodule.contentstore.content import StaticContent
 from xmodule.util.duedate import get_extended_due_date
 
@@ -582,7 +582,7 @@ class StaffGradedAssignmentXBlock(
         """
         context = {
             "student_state": json.dumps(self.student_state()),
-            "id": self.location.name.replace(".", "_"),
+            "id": self.location.block_id,
             "max_file_size": self.student_upload_max_size(),
             "support_email": settings.TECH_SUPPORT_EMAIL,
         }
