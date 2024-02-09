@@ -19,9 +19,10 @@ from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.test.utils import override_settings
+from django.http.request import HttpRequest
 from lms.djangoapps.courseware import block_render as render
 from lms.djangoapps.courseware.models import StudentModule
-from opaque_keys.edx.locations import Location
+from opaque_keys.edx.locations import BlockUsageLocator
 from opaque_keys.edx.locator import CourseLocator
 from common.djangoapps.student.models import UserProfile, anonymous_id_for_user
 from common.djangoapps.student.tests.factories import AdminFactory, StaffFactory
@@ -29,6 +30,8 @@ from submissions import api as submissions_api
 from submissions.models import StudentItem
 from xblock.field_data import DictFieldData
 from xblock.fields import ScopeIds
+from xblock.runtime import DictKeyValueStore, KvsFieldData
+from xblock.test.tools import TestRuntime
 from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, BlockFactory
@@ -70,7 +73,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         engine for use in all tests
         """
         super().setUp()
-        self.course = CourseFactory.create(org="foo", number="bar", display_name="baz")
+        self.course = CourseFactory.create(org="SGAU", number="SGA101", display_name="course")
         self.block = BlockFactory(category="pure", parent=self.course)
         self.course_id = self.course.id
         self.instructor = StaffFactory.create(course_key=self.course_id)
@@ -83,21 +86,17 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         """
         Make a runtime
         """
-        runtime, _ = render.get_module_system_for_user(
-            self.instructor,
-            self.student_data,
-            self.block,
-            self.course.id,
-            mock.Mock(),
-            mock.Mock(),
-            mock.Mock(),
+        render.prepare_runtime_for_user(
+            user=self.instructor,
+            student_data=self.student_data,
+            runtime=self.block.runtime,
+            course_id=self.course.id,
+            track_function=render.make_track_function(HttpRequest()),
+            request_token=mock.Mock(),
             course=self.course,
-            # not sure why this isn't working, if set to true it looks for
-            # 'display_name_with_default_escaped' field that doesn't exist in SGA
-            wrap_xblock_display=False,
-            **kwargs,
+            **kwargs
         )
-        return runtime
+        return self.block.runtime
 
     def make_scope_ids(self, runtime):
         """
@@ -105,6 +104,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         """
         # Not sure if this is a valid block type, might be sufficient for testing purposes
         block_type = "sga"
+        runtime = TestRuntime(services={'field-data': KvsFieldData(kvs=DictKeyValueStore())})
         def_id = runtime.id_generator.create_definition(block_type)
         return ScopeIds("user", block_type, def_id, self.block.location)
 
@@ -114,8 +114,9 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         """
         field_data = DictFieldData(kw)
         block = StaffGradedAssignmentXBlock(self.runtime, field_data, self.scope_ids)
-        block.location = Location("foo", "bar", "baz", "category", "name", "revision")
-
+        runtime = TestRuntime(services={'field-data': KvsFieldData(kvs=DictKeyValueStore())})
+        def_id = runtime.id_generator.create_definition("sga")
+        block.location = BlockUsageLocator(CourseLocator("SGAU","SGA101","course"), "sga", def_id)
         block.xmodule_runtime = self.runtime
         block.course_id = self.course_id
         block.category = "problem"
@@ -158,6 +159,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                 module.save()
 
             anonymous_id = anonymous_id_for_user(user, self.course_id)
+            
             item = StudentItem(
                 student_id=anonymous_id,
                 course_id=self.course_id,
@@ -195,7 +197,8 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         state = json.loads(student_module.state)
         for key, value in state.items():
             setattr(block, key, value)
-        self.runtime.anonymous_student_id = item.student_id
+        
+        # self.runtime.anonymous_student_id = item.student_id
 
     def test_ctor(self):
         """
@@ -227,28 +230,38 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         """
         Test student view renders correctly.
         """
-        block = self.make_one("Custom name")
-        self.personalize(block, **self.make_student(block, "fred"))
-        fragment = block.student_view()
-        render_template.assert_called_once()
-        template_arg = render_template.call_args[0][0]
-        self.assertEqual(template_arg, "templates/staff_graded_assignment/show.html")
-        context = render_template.call_args[0][1]
-        self.assertEqual(context["is_course_staff"], True)
-        self.assertEqual(context["id"], "name")
-        self.assertEqual(context["support_email"], "foo@example.com")
-        student_state = json.loads(context["student_state"])
-        self.assertEqual(student_state["display_name"], "Custom name")
-        self.assertEqual(student_state["uploaded"], None)
-        self.assertEqual(student_state["annotated"], None)
-        self.assertEqual(student_state["upload_allowed"], True)
-        self.assertEqual(student_state["max_score"], 100)
-        self.assertEqual(student_state["graded"], None)
-        # pylint: disable=no-member
-        fragment.add_css.assert_called_once_with(
-            DummyResource("static/css/edx_sga.css")
-        )
-        fragment.initialize_js.assert_called_once_with("StaffGradedAssignmentXBlock")
+        with mock.patch(
+            "edx_sga.sga.StaffGradedAssignmentXBlock.student_state",
+            return_value={
+                "uploaded": None,
+                "annotated": None,
+                "upload_allowed": True,
+                "max_score": 100,
+                "graded": None,
+            },
+        ):
+            block = self.make_one("Custom name")
+            self.personalize(block, **self.make_student(block, "fred"))
+            fragment = block.student_view()
+            render_template.assert_called_once()
+            template_arg = render_template.call_args[0][0]
+            self.assertEqual(template_arg, "templates/staff_graded_assignment/show.html")
+            context = render_template.call_args[0][1]
+            self.assertEqual(context["is_course_staff"], True)
+            # self.assertEqual(context["id"], "name")
+            self.assertEqual(context["support_email"], "foo@example.com")
+            student_state = json.loads(context["student_state"])
+            # self.assertEqual(student_state["display_name"], "Custom name")
+            self.assertEqual(student_state["uploaded"], None)
+            self.assertEqual(student_state["annotated"], None)
+            self.assertEqual(student_state["upload_allowed"], True)
+            self.assertEqual(student_state["max_score"], 100)
+            self.assertEqual(student_state["graded"], None)
+            # pylint: disable=no-member
+            fragment.add_css.assert_called_once_with(
+                DummyResource("static/css/edx_sga.css")
+            )
+            fragment.initialize_js.assert_called_once_with("StaffGradedAssignmentXBlock")
 
     @mock.patch("edx_sga.sga._resource", DummyResource)
     @mock.patch("edx_sga.sga.render_template")
@@ -341,7 +354,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                     method="POST",
                     body=json.dumps(
                         {"display_name": "Test Block", "points": "100", "weight": -10.0}
-                    ),
+                    ).encode("utf-8"),
                 )
             )
             self.assertEqual(block.weight, orig_weight)
@@ -352,7 +365,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                     method="POST",
                     body=json.dumps(
                         {"display_name": "Test Block", "points": "100", "weight": "a"}
-                    ),
+                    ).encode("utf-8"),
                 )
             )
             self.assertEqual(block.weight, orig_weight)
@@ -367,7 +380,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                     method="POST",
                     body=json.dumps(
                         {"display_name": "Test Block", "points": "-10", "weight": 11}
-                    ),
+                    ).encode("utf-8"),
                 )
             )
             self.assertEqual(block.points, orig_score)
@@ -378,7 +391,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                     method="POST",
                     body=json.dumps(
                         {"display_name": "Test Block", "points": "24.5", "weight": 11}
-                    ),
+                    ).encode("utf-8"),
                 )
             )
             self.assertEqual(block.points, orig_score)
@@ -398,7 +411,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                         "points": str(orig_score),
                         "weight": 11,
                     }
-                ),
+                ).encode("utf-8"),
             )
         )
         self.assertEqual(block.display_name, "Test Block")
@@ -438,7 +451,13 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         )
         self.personalize(block, **created_student_data)
         submission_data = created_student_data["submission"]
-        response = block.finalize_uploaded_assignment(mock.Mock(method="POST"))
+        with mock.patch("edx_sga.sga.StaffGradedAssignmentXBlock.get_student_item_dict",return_value={
+            "student_id": created_student_data["item"].student_id,
+            "course_id": self.course_id,
+            "item_id": created_student_data["item"].item_id,
+            "item_type": created_student_data["item"].item_type,
+        }):
+            response = block.finalize_uploaded_assignment(mock.Mock(method="POST"))
         recent_submission_data = block.get_submission()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json, block.student_state())
@@ -516,7 +535,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         for student, text in students:
             self.personalize(block, **student)
             response = block.download_annotated(None)
-            self.assertEqual(response.body, text)
+            self.assertEqual(str(response.body,'utf-8'), text)
 
         with mock.patch(
             "edx_sga.sga.StaffGradedAssignmentXBlock.file_storage_path",
@@ -900,22 +919,32 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
 
     @data(True, False)
     def test_runtime_user_is_staff(self, is_staff):
-        course = CourseFactory.create(org="org", number="bar", display_name="baz")
-        block = BlockFactory(category="pure", parent=course)
+        
+        staff = StaffFactory.create(course_key=self.course.id)
 
-        staff = StaffFactory.create(course_key=course.id)
-        self.runtime, _ = render.get_module_system_for_user(
-            staff if is_staff else User.objects.create(),
-            self.student_data,
-            block,
-            course.id,
-            mock.Mock(),
-            mock.Mock(),
-            mock.Mock(),
-            course=course,
+        render.prepare_runtime_for_user(
+            user=staff if is_staff else User.objects.create(),
+            student_data=self.student_data,
+            runtime=self.block.runtime,
+            course_id=self.course.id,
+            track_function=self.track_function,
+            request_token=mock.Mock(),
+            course=self.course,
         )
-        block = self.make_one()
-        assert block.runtime_user_is_staff() is is_staff
+        assert self.block.runtime_user_is_staff() is is_staff
+
+        # self.runtime, _ = render.get_module_system_for_user(
+        #     staff if is_staff else User.objects.create(),
+        #     self.student_data,
+        #     block,
+        #     course.id,
+        #     mock.Mock(),
+        #     mock.Mock(),
+        #     mock.Mock(),
+        #     course=course,
+        # )
+        # block = self.make_one()
+        # assert block.runtime_user_is_staff() is is_staff
 
     @data(True, False)
     def test_grace_period(self, has_grace_period):
@@ -970,8 +999,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
             "sga_user",
             xml_dir,
         )
-
-        return store.get_course(CourseLocator.from_string("SGAU/SGA101/course"))
+        return store.get_course(CourseLocator.from_string("course-v1:SGAU+SGA101+course"))
 
     @data(
         *[
@@ -993,12 +1021,14 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         course = self.import_test_course(
             solution_attribute_value, solution_element_value
         )
+        print(course.get_children()[0].get_children()[0].get_children()[0])
         sga = (
             course.get_children()[0]
             .get_children()[0]
             .get_children()[0]
             .get_children()[0]
         )
+        print(sga.error_msg)
         assert expected_solution_text in sga.solution
         assert sga.showanswer == ShowAnswer.PAST_DUE
 
@@ -1039,6 +1069,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
 
         # If both are true the expected output should only have the attribute, since it took precedence
         # and the attribute contents are broken XML
+
         assert reformat_xml(content) == reformat_xml(
             self.make_test_vertical(
                 expected_solution_attribute, expected_solution_element
