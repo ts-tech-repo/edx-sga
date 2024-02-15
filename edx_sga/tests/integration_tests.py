@@ -113,16 +113,12 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         Creates a XBlock SGA for testing purpose.
         """
         field_data = DictFieldData(kw)
-        # block = StaffGradedAssignmentXBlock(self.runtime, field_data, self.scope_ids)
         mixologist = Mixologist(settings.XBLOCK_MIXINS)
         class_ = mixologist.mix(StaffGradedAssignmentXBlock)
         block = class_(self.runtime, field_data, self.scope_ids)
         runtime = TestRuntime(services={'field-data': KvsFieldData(kvs=DictKeyValueStore())})
         def_id = runtime.id_generator.create_definition("sga")
         block.location = BlockUsageLocator(CourseLocator("SGAU","SGA101","course"), "sga", def_id)
-        # block.xmodule_runtime = self.runtime
-        # block.course_id = self.course_id
-        # block.category = "problem"
 
         if display_name:
             block.display_name = display_name
@@ -162,7 +158,6 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                 module.save()
 
             anonymous_id = anonymous_id_for_user(user, self.course_id)
-
             item = StudentItem(
                 student_id=anonymous_id,
                 course_id=self.course_id,
@@ -178,7 +173,6 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                     submissions_api.set_score(
                         submission["uuid"], score, block.max_score()
                     )
-
             else:
                 submission = None
 
@@ -200,7 +194,6 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         state = json.loads(student_module.state)
         for key, value in state.items():
             setattr(block, key, value)
-
         self.runtime.deprecated_anonymous_student_id = item.student_id
 
     def test_ctor(self):
@@ -947,19 +940,6 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         )
         assert self.block.runtime.user_is_staff is is_staff
 
-        # self.runtime, _ = render.get_module_system_for_user(
-        #     staff if is_staff else User.objects.create(),
-        #     self.student_data,
-        #     block,
-        #     course.id,
-        #     mock.Mock(),
-        #     mock.Mock(),
-        #     mock.Mock(),
-        #     course=course,
-        # )
-        # block = self.make_one()
-        # assert block.runtime_user_is_staff() is is_staff
-
     @data(True, False)
     def test_grace_period(self, has_grace_period):
         block = self.make_one()
@@ -1080,12 +1060,6 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
 
         # If both are true the expected output should only have the attribute, since it took precedence
         # and the attribute contents are broken XML
-        print(reformat_xml(content))
-        print(reformat_xml(
-            self.make_test_vertical(
-                expected_solution_attribute, expected_solution_element
-            )
-        ))
         assert reformat_xml(content) == reformat_xml(
             self.make_test_vertical(
                 expected_solution_attribute, expected_solution_element
