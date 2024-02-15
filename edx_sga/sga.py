@@ -653,7 +653,7 @@ class StaffGradedAssignmentXBlock(
         """
         if student_id is None and (user_service := self.runtime.service(self, 'user')):
             student_id = user_service.get_current_user().opt_attrs.get(ATTR_KEY_ANONYMOUS_USER_ID)
-            
+
             assert student_id != ("MOCK", "Forgot to call 'personalize' in test.")
         return {
             "student_id": student_id,
@@ -758,7 +758,7 @@ class StaffGradedAssignmentXBlock(
             if score:
                 score = score.get("points_earned")
                 graded = {"score": score, "comment": force_str(self.comment)}
-                
+
         else:
             uploaded = None
 

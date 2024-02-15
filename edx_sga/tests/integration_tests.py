@@ -7,7 +7,6 @@ import html
 import json
 import os
 import shutil
-import functools
 import tempfile
 from unittest import mock
 
@@ -32,16 +31,13 @@ from submissions import api as submissions_api
 from submissions.models import StudentItem
 from xblock.field_data import DictFieldData
 from xblock.fields import ScopeIds
-from xblock.runtime import DictKeyValueStore, KvsFieldData
+from xblock.runtime import DictKeyValueStore, KvsFieldData, Mixologist
 from xblock.test.tools import TestRuntime
 from xmodule.modulestore.django import modulestore
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, mixed_store_config, StoreConstructors
+from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, BlockFactory
 from xmodule.modulestore.xml_exporter import export_course_to_xml
 from xmodule.modulestore.xml_importer import import_course_from_xml
-from xmodule.modulestore.inheritance import InheritanceMixin
-from openedx.core.lib import tempdir
-from xblock.runtime import Mixologist
 
 from edx_sga.constants import ShowAnswer
 from edx_sga.sga import StaffGradedAssignmentXBlock
@@ -166,7 +162,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
                 module.save()
 
             anonymous_id = anonymous_id_for_user(user, self.course_id)
-            
+
             item = StudentItem(
                 student_id=anonymous_id,
                 course_id=self.course_id,
@@ -175,14 +171,14 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
             )
             item.save()
 
-            if answer:              
+            if answer:
                 student_id = block.get_student_item_dict(anonymous_id)
                 submission = submissions_api.create_submission(student_id, answer)
                 if score is not None:
                     submissions_api.set_score(
                         submission["uuid"], score, block.max_score()
                     )
-                    pass
+
             else:
                 submission = None
 
@@ -204,7 +200,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         state = json.loads(student_module.state)
         for key, value in state.items():
             setattr(block, key, value)
-        
+
         self.runtime.deprecated_anonymous_student_id = item.student_id
 
     def test_ctor(self):
@@ -245,16 +241,15 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         self.assertEqual(template_arg, "templates/staff_graded_assignment/show.html")
         context = render_template.call_args[0][1]
         self.assertEqual(context["is_course_staff"], True)
-        # self.assertEqual(context["id"], "name")
+        self.assertEqual(context["id"], "d_0")
         self.assertEqual(context["support_email"], "foo@example.com")
         student_state = json.loads(context["student_state"])
-        # self.assertEqual(student_state["display_name"], "Custom name")
+        self.assertEqual(student_state["display_name"], "Custom name")
         self.assertEqual(student_state["uploaded"], None)
         self.assertEqual(student_state["annotated"], None)
         self.assertEqual(student_state["upload_allowed"], True)
         self.assertEqual(student_state["max_score"], 100)
         self.assertEqual(student_state["graded"], None)
-        # pylint: disable=no-member
         fragment.add_css.assert_called_once_with(
             DummyResource("static/css/edx_sga.css")
         )
@@ -327,7 +322,6 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
             self.assertEqual(student_state["upload_allowed"], False)
             self.assertEqual(student_state["max_score"], 100)
             self.assertEqual(student_state["graded"], {"comment": "", "score": 10})
-            # pylint: disable=no-member
             fragment.add_css.assert_called_once_with(
                 DummyResource("static/css/edx_sga.css")
             )
@@ -566,7 +560,8 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
             user = student["module"].student
             student_id = anonymous_id_for_user(user,self.course_id)
 
-            with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)), self.dummy_upload(filename, text) as (upload, __):
+            with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)),\
+                  self.dummy_upload(filename, text) as (upload, __):
                 block.upload_assignment(mock.Mock(params={"assignment": upload}))
             students.append(
                 (
@@ -627,8 +622,9 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         self.personalize(block, **student)
         user = student["module"].student
         student_id = anonymous_id_for_user(user,self.course_id)
-        
-        with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)), self.dummy_upload("файл.txt") as (upload, expected):
+
+        with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)),\
+              self.dummy_upload("файл.txt") as (upload, expected):
             block.upload_assignment(mock.Mock(params={"assignment": upload}))
         response = block.staff_download(
             mock.Mock(params={"student_id": student["item"].student_id})
@@ -656,8 +652,9 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         self.personalize(block, **student)
         user = student["module"].student
         student_id = anonymous_id_for_user(user,self.course_id)
-        
-        with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)), self.dummy_upload(file_name) as (upload, expected):
+
+        with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)),\
+              self.dummy_upload(file_name) as (upload, expected):
             block.upload_assignment(mock.Mock(params={"assignment": upload}))
         response = block.staff_download(
             mock.Mock(params={"student_id": student["item"].student_id})
@@ -678,8 +675,9 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         self.personalize(block, **student)
         user = student["module"].student
         student_id = anonymous_id_for_user(user,self.course_id)
-        
-        with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)), self.dummy_upload(file_name) as (upload, expected):
+
+        with mock.patch.object(StaffGradedAssignmentXBlock.get_student_item_dict,"__defaults__",(student_id,)),\
+              self.dummy_upload(file_name) as (upload, expected):
             block.upload_assignment(mock.Mock(params={"assignment": upload}))
         response = block.staff_download(
             mock.Mock(params={"student_id": student["item"].student_id})
@@ -695,7 +693,8 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         test staff grading data for non staff members.
         """
         block = self.make_one()
-        with mock.patch("edx_sga.sga.StaffGradedAssignmentXBlock.is_course_staff", return_value=False), self.assertRaises(PermissionDenied):
+        with mock.patch("edx_sga.sga.StaffGradedAssignmentXBlock.is_course_staff", return_value=False),\
+              self.assertRaises(PermissionDenied):
             block.get_staff_grading_data(None)
 
     def test_get_staff_grading_data(self):
@@ -934,7 +933,7 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
 
     @data(True, False)
     def test_runtime_user_is_staff(self, is_staff):
-        
+
         staff = StaffFactory.create(course_key=self.course.id)
 
         render.prepare_runtime_for_user(

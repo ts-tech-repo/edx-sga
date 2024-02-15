@@ -8,6 +8,8 @@ mkdir -p reports
 
 pip install -r requirements/edx/testing.txt
 
+pip install -e .
+
 cd /edx-sga
 pip uninstall edx-sga -y
 pip install -e .
