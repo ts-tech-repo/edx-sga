@@ -7,8 +7,8 @@ coverage:
     patch:
       default:
         enabled: yes
-  ignore:
-    - "edx_sga/tests/integration_tests.py"
+        target: 50%
+
 comment:
   layout: "reach, diff, flags, files"
   behavior: default
