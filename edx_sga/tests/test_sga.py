@@ -748,7 +748,7 @@ class StaffGradedAssignmentMockedTests(TempfileMixin):
             {
                 "submission_id": uuid.uuid4().hex,
                 "filename": f"test_{uuid.uuid4().hex}.txt",
-                "timestamp": datetime.datetime.utcnow(),
+                "timestamp": datetime.datetime.now(datetime.UTC),
             }
             for __ in range(2)
         ]
