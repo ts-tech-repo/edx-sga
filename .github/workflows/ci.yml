@@ -39,7 +39,7 @@ jobs:
       - name: Run Integration Tests 
         run: |
             cd ..
-            git clone https://github.com/edx/devstack.git
+            git clone https://github.com/openedx/devstack
             cd devstack
             sed -i 's/:cached//g' ./docker-compose-host.yml
             make dev.clone.https

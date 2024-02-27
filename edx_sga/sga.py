@@ -653,7 +653,6 @@ class StaffGradedAssignmentXBlock(
         """
         if student_id is None and (user_service := self.runtime.service(self, 'user')):
             student_id = user_service.get_current_user().opt_attrs.get(ATTR_KEY_ANONYMOUS_USER_ID)
-
             assert student_id != ("MOCK", "Forgot to call 'personalize' in test.")
         return {
             "student_id": student_id,
@@ -748,17 +747,9 @@ class StaffGradedAssignmentXBlock(
         Returns a JSON serializable representation of student's state for
         rendering in client view.
         """
-        graded = None
         submission = self.get_submission()
-
         if submission:
             uploaded = {"filename": submission["answer"]["filename"]}
-            student_item = SubmissionsStudent.objects.get(id = submission.get("student_item"))
-            score = submissions_api.get_score(student_item.student_item_dict)
-            if score:
-                score = score.get("points_earned")
-                graded = {"score": score, "comment": force_str(self.comment)}
-
         else:
             uploaded = None
 
@@ -766,6 +757,12 @@ class StaffGradedAssignmentXBlock(
             annotated = {"filename": force_str(self.annotated_filename)}
         else:
             annotated = None
+
+        score = self.score
+        if score is not None:
+            graded = {"score": score, "comment": force_str(self.comment)}
+        else:
+            graded = None
 
         if self.answer_available() and (replace_urls_service := self.runtime.service(self, 'replace_urls')):
             solution = replace_urls_service.replace_urls(force_str(self.solution))

@@ -299,7 +299,8 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
         user = student["module"].student
         student_id = anonymous_id_for_user(user,self.course_id)
 
-        with mock.patch.object(StaffGradedAssignmentXBlock.get_submission,"__defaults__",(student_id,)):
+        with mock.patch.object(StaffGradedAssignmentXBlock.get_submission,"__defaults__",(student_id,)),\
+        mock.patch.object(StaffGradedAssignmentXBlock.get_score, "__defaults__",(student_id,)):
             fragment = block.student_view()
             render_template.assert_called_once()
             template_arg = render_template.call_args[0][0]
@@ -308,7 +309,6 @@ class StaffGradedAssignmentXblockTests(TempfileMixin, ModuleStoreTestCase):
             self.assertEqual(context["is_course_staff"], True)
             self.assertEqual(context["id"], "d_0")
             student_state = json.loads(context["student_state"])
-            print(f"state: {student_state}")
             self.assertEqual(student_state["display_name"], "Staff Graded Assignment")
             self.assertEqual(student_state["uploaded"], {"filename": "foo.txt"})
             self.assertEqual(student_state["annotated"], None)
