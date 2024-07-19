@@ -959,7 +959,6 @@ class StaffGradedAssignmentXBlock(
         return (
             not self.past_due()
             and self.score is None
-            and not is_finalized_submission(submission_data)
         )
 
     def file_storage_path(self, file_hash, original_filename):
