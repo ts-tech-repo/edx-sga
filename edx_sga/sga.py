@@ -784,6 +784,7 @@ class StaffGradedAssignmentXBlock(
             "base_asset_url": StaticContent.get_base_url_path_for_course_assets(
                 self.location.course_key
             ),
+            "uploadSuccess" : False,
         }
 
     def staff_grading_data(self):

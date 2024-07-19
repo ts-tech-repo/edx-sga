@@ -41,11 +41,14 @@
             {% trans "This assignment has not yet been graded." %}
           <% } %>
         </p>
-        <% if (upload_allowed) { %>
-          <p>
-            <a class="button finalize-upload">Submit</a>
-          </p>
-        <% } %>
+	<% if (upload_allowed) { %>
+		<p>
+		    <a class="button finalize-upload">Click Here to Save</a>
+	          </p>
+		 <% if(uploadSuccess) { %>
+			  <span id= "upload_text">File Saved Successfully</span>
+		 <% } %>
+	<% } %>
       </div>
     <% } %>
     <% if (solution) { %>
