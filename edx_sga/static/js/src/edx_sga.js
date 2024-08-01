@@ -38,6 +38,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
       $(content).find('.finalize-upload').on('click', function () {
         $.post(finalizeUploadUrl).success(
           function (state) {
+            state.uploadSuccess = true;
             render(state);
           }
         ).fail(
@@ -62,6 +63,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
             //if file size is larger max file size define in env(django)
             if (size >= data_max_size) {
               state.error = gettext('The file you are trying to upload is too large.');
+              state.uploadSuccess = false
               render(state);
               return;
             }
@@ -246,8 +248,8 @@ function StaffGradedAssignmentXBlock(runtime, element) {
         event.preventDefault();
         if (isNaN(score)) {
           gradeFormError('<br/>' + gettext('Grade must be a number.'));
-        } else if (score !== parseInt(score)) {
-          gradeFormError('<br/>' + gettext('Grade must be an integer.'));
+        // } else if (score !== parseInt(score)) {
+        //   gradeFormError('<br/>' + gettext('Grade must be an integer.'));
         } else if (score < 0) {
           gradeFormError('<br/>' + gettext('Grade must be positive.'));
         } else if (score > max_score) {

@@ -34,7 +34,7 @@ from xblock.core import XBlock
 from xblock.exceptions import JsonHandlerError
 from xblock.fields import DateTime, Float, Integer, Scope, String
 from web_fragments.fragment import Fragment
-from xblock.utils.studio_editable import StudioEditableXBlockMixin
+from xblockutils.studio_editable import StudioEditableXBlockMixin
 from xmodule.contentstore.content import StaticContent
 from xmodule.util.duedate import get_extended_due_date
 
@@ -94,7 +94,7 @@ class StaffGradedAssignmentXBlock(
         default=_("Staff Graded Assignment"),
         scope=Scope.settings,
         help=_(
-            "This name appears in the horizontal navigation at the top of the page."
+            "This name appears in the horizontal navigation at the top of " "the page."
         ),
     )
 
@@ -119,7 +119,7 @@ class StaffGradedAssignmentXBlock(
     staff_score = Integer(
         display_name=_("Score assigned by non-instructor staff"),
         help=_(
-            "Score will need to be approved by instructor before being published."
+            "Score will need to be approved by instructor before being " "published."
         ),
         default=None,
         scope=Scope.settings,
@@ -181,8 +181,7 @@ class StaffGradedAssignmentXBlock(
         return file_obj.tell() > cls.student_upload_max_size()
 
     @classmethod
-    def parse_xml(cls, node, runtime, keys):
-        # pylint: disable=arguments-differ,unused-argument
+    def parse_xml(cls, node, runtime, keys, id_generator):
         """
         Override default serialization to handle <solution /> elements
         """
@@ -191,7 +190,7 @@ class StaffGradedAssignmentXBlock(
         for child in node:
             if child.tag == "solution":
                 # convert child elements of <solution> into HTML for display
-                block.solution = "".join(etree.tostring(subchild, encoding=str) for subchild in child)
+                block.solution = "".join(etree.tostring(subchild) for subchild in child)
 
         # Attributes become fields.
         # Note that a solution attribute here will override any solution XML element
@@ -229,11 +228,13 @@ class StaffGradedAssignmentXBlock(
 
         # Validate points before saving
         points = data.get("points", self.points)
+
+        #Commented to handle decimal values
         # Check that we are an int
-        try:
-            points = int(points)
-        except ValueError:
-            raise JsonHandlerError(400, "Points must be an integer")
+        # try:
+        #     points = int(points)
+        # except ValueError:
+        #     raise JsonHandlerError(400, "Points must be an integer")
         # Check that we are positive
         if points < 0:
             raise JsonHandlerError(400, "Points must be a positive integer")
@@ -425,14 +426,15 @@ class StaffGradedAssignmentXBlock(
             )
 
         state = json.loads(module.state)
-        try:
-            score = int(score)
-        except ValueError:
-            return Response(
-                json_body=self.validate_score_message(
-                    module.course_id, module.student.username
-                )
-            )
+        #Commented to handle decimal values
+        # try:
+        #     score = int(score)
+        # except ValueError:
+        #     return Response(
+        #         json_body=self.validate_score_message(
+        #             module.course_id, module.student.username
+        #         )
+        #     )
 
         if self.is_instructor():
             uuid = request.params["submission_id"]
@@ -485,6 +487,7 @@ class StaffGradedAssignmentXBlock(
         """
         Runs a async task that collects submissions in background and zip them.
         """
+        # pylint: disable=no-member
         require(self.is_course_staff())
         user = self.get_real_user()
         require(user)
@@ -539,6 +542,7 @@ class StaffGradedAssignmentXBlock(
         """
         Api for downloading zip file which consist of all students submissions.
         """
+        # pylint: disable=no-member
         require(self.is_course_staff())
         user = self.get_real_user()
         require(user)
@@ -574,13 +578,14 @@ class StaffGradedAssignmentXBlock(
         return Response(json_body={"zip_available": self.is_zip_file_available(user)})
 
     def student_view(self, context=None):
+        # pylint: disable=no-member
         """
         The primary view of the StaffGradedAssignmentXBlock, shown to students
         when viewing courses.
         """
         context = {
             "student_state": json.dumps(self.student_state()),
-            "id": self.location.block_id.replace(".", "_"),
+            "id": self.location.name.replace(".", "_"),
             "max_file_size": self.student_upload_max_size(),
             "support_email": settings.TECH_SUPPORT_EMAIL,
         }
@@ -725,6 +730,7 @@ class StaffGradedAssignmentXBlock(
         Returns:
             StudentModule: A StudentModule object
         """
+        # pylint: disable=no-member
         student_module, created = StudentModule.objects.get_or_create(
             course_id=self.course_id,
             module_state_key=self.location,
@@ -769,6 +775,7 @@ class StaffGradedAssignmentXBlock(
             solution = replace_urls_service.replace_urls(force_str(self.solution))
         else:
             solution = ""
+        # pylint: disable=no-member
         return {
             "display_name": force_str(self.display_name),
             "uploaded": uploaded,
@@ -780,6 +787,7 @@ class StaffGradedAssignmentXBlock(
             "base_asset_url": StaticContent.get_base_url_path_for_course_assets(
                 self.location.course_key
             ),
+            "uploadSuccess" : False,
         }
 
     def staff_grading_data(self):
@@ -891,6 +899,7 @@ class StaffGradedAssignmentXBlock(
     def validate_score_message(
         self, course_id, username
     ):  # lint-amnesty, pylint: disable=missing-function-docstring
+        # pylint: disable=no-member
         log.error(
             "enter_grade: invalid grade submitted for course:%s module:%s student:%s",
             course_id,
@@ -953,10 +962,10 @@ class StaffGradedAssignmentXBlock(
         return (
             not self.past_due()
             and self.score is None
-            and not is_finalized_submission(submission_data)
         )
 
     def file_storage_path(self, file_hash, original_filename):
+        # pylint: disable=no-member
         """
         Helper method to get the path of an uploaded file
         """
@@ -966,6 +975,7 @@ class StaffGradedAssignmentXBlock(
         """
         returns True if zip file exists.
         """
+        # pylint: disable=no-member
         zip_file_path = get_zip_file_path(
             user.username, self.block_course_id, self.block_id, self.location
         )
@@ -975,6 +985,7 @@ class StaffGradedAssignmentXBlock(
         """
         returns number of files archive in zip.
         """
+        # pylint: disable=no-member
         zip_file_path = get_zip_file_path(
             user.username, self.block_course_id, self.block_id, self.location
         )
