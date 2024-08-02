@@ -248,8 +248,8 @@ function StaffGradedAssignmentXBlock(runtime, element) {
         event.preventDefault();
         if (isNaN(score)) {
           gradeFormError('<br/>' + gettext('Grade must be a number.'));
-        } else if (score !== parseInt(score)) {
-          gradeFormError('<br/>' + gettext('Grade must be an integer.'));
+        // } else if (score !== parseInt(score)) {
+        //   gradeFormError('<br/>' + gettext('Grade must be an integer.'));
         } else if (score < 0) {
           gradeFormError('<br/>' + gettext('Grade must be positive.'));
         } else if (score > max_score) {
