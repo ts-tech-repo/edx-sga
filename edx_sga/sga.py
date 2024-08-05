@@ -232,7 +232,7 @@ class StaffGradedAssignmentXBlock(
         try:
             points = float(points)
         except ValueError:
-            raise JsonHandlerError(400, "Points must be an integer")
+            raise JsonHandlerError(400, "Points must be an integer or float")
         # Check that we are positive
         if points < 0:
             raise JsonHandlerError(400, "Points must be a positive integer")
