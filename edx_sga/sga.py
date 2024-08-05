@@ -229,10 +229,10 @@ class StaffGradedAssignmentXBlock(
         # Validate points before saving
         points = data.get("points", self.points)
         # Check that we are an int
-        # try:
-        #     points = int(points)
-        # except ValueError:
-        #     raise JsonHandlerError(400, "Points must be an integer")
+        try:
+            points = float(points)
+        except ValueError:
+            raise JsonHandlerError(400, "Points must be an integer")
         # Check that we are positive
         if points < 0:
             raise JsonHandlerError(400, "Points must be a positive integer")
@@ -424,14 +424,14 @@ class StaffGradedAssignmentXBlock(
             )
 
         state = json.loads(module.state)
-        # try:
-        #     score = int(score)
-        # except ValueError:
-        #     return Response(
-        #         json_body=self.validate_score_message(
-        #             module.course_id, module.student.username
-        #         )
-        #     )
+        try:
+            score = float(score)
+        except ValueError:
+            return Response(
+                json_body=self.validate_score_message(
+                    module.course_id, module.student.username
+                )
+            )
 
         if self.is_instructor():
             uuid = request.params["submission_id"]
