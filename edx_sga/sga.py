@@ -300,13 +300,14 @@ class StaffGradedAssignmentXBlock(
         given block, and makes the submission available to instructors for grading
         """
         submission_data = self.get_submission()
-        require(self.upload_allowed(submission_data=submission_data))
-        # Editing the Submission record directly since the API doesn't support it
-        submission = Submission.objects.get(uuid=submission_data["uuid"])
-        if not submission.answer.get("finalized"):
-            submission.answer["finalized"] = True
-            submission.submitted_at = django_now()
-            submission.save()
+        for each_submission_data in submission_data:
+            require(self.upload_allowed(submission_data=each_submission_data))
+            # Editing the Submission record directly since the API doesn't support it
+            submission = Submission.objects.get(uuid=each_submission_data["uuid"])
+            if not submission.answer.get("finalized"):
+                submission.answer["finalized"] = True
+                submission.submitted_at = django_now()
+                submission.save()
         return Response(json_body=self.student_state())
 
     @XBlock.handler
@@ -674,7 +675,7 @@ class StaffGradedAssignmentXBlock(
         if submissions:
             # If I understand docs correctly, most recent submission should
             # be first
-            return submissions[0]
+            return submissions
 
         return None
 
@@ -751,11 +752,13 @@ class StaffGradedAssignmentXBlock(
         Returns a JSON serializable representation of student's state for
         rendering in client view.
         """
-        submission = self.get_submission()
-        if submission:
-            uploaded = {"filename": submission["answer"]["filename"]}
-        else:
-            uploaded = None
+        filenames = []
+        for submission in self.get_submission():
+            if submission:
+                filenames.append({"filename" : submission["answer"]["filename"], "submission_id" : submission["uuid"]})
+                # uploaded = {"filename": submission["answer"]["filename"]}
+            else:
+                uploaded = None
 
         if self.annotated_sha1:
             annotated = {"filename": force_str(self.annotated_filename)}
@@ -775,7 +778,7 @@ class StaffGradedAssignmentXBlock(
         # pylint: disable=no-member
         return {
             "display_name": force_str(self.display_name),
-            "uploaded": uploaded,
+            "uploaded": {"filenames" : filenames if filenames else None},
             "annotated": annotated,
             "graded": graded,
             "max_score": self.max_score(),
@@ -807,6 +810,15 @@ class StaffGradedAssignmentXBlock(
                 submission = self.get_submission(student.student_id)
                 if not submission:
                     continue
+                filenames, finalizedSubmission = [], False
+                for user_submission in submission:
+                    uuid = user_submission["uuid"]
+                    filenames.append(user_submission["answer"]["filename"])
+                    created_at = user_submission["created_at"]
+                    finalizedSubmission = is_finalized_submission(submission_data=user_submission)
+
+
+
                 user = user_by_anonymous_id(student.student_id)
                 student_module = self.get_or_create_student_module(user)
                 state = json.loads(student_module.state)
@@ -821,11 +833,11 @@ class StaffGradedAssignmentXBlock(
                 yield {
                     "module_id": student_module.id,
                     "student_id": student.student_id,
-                    "submission_id": submission["uuid"],
+                    "submission_id": uuid,
                     "username": student_module.student.username,
                     "fullname": student_module.student.profile.name,
-                    "filename": submission["answer"]["filename"],
-                    "timestamp": submission["created_at"].strftime(
+                    "filename": ",".join(filenames),
+                    "timestamp": created_at.strftime(
                         DateTime.DATETIME_FORMAT
                     ),
                     "score": score,
@@ -834,7 +846,7 @@ class StaffGradedAssignmentXBlock(
                     "may_grade": instructor or not approved,
                     "annotated": force_str(state.get("annotated_filename", "")),
                     "comment": force_str(state.get("comment", "")),
-                    "finalized": is_finalized_submission(submission_data=submission),
+                    "finalized": finalizedSubmission,
                 }
 
         return {

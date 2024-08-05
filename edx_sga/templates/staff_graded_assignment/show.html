@@ -22,10 +22,13 @@
       </p>
     <% } %>
     <% if (uploaded) { %>
+      <!-- <p><%= uploaded.filenames %></p> -->
       <div class="sequential-status-message">
         <p>
-          <b>{% trans "File uploaded" %}</b>
-          <a href="<%= downloadUrl %>"><%= uploaded.filename %></a>
+          <b>{% trans "Files uploaded" %}</b>
+          <% for (var i = 0; i < uploaded.filenames.length; i++) { %>
+            <a href="<%= downloadUrl?uuid=uploaded.filenames[i].submission_id %>"><%= uploaded.filenames[i].filename %></a><button type = "submit" id = "<%= uploaded.filenames[i].submission_id %>">Delete file</button><br>
+          <% } %>
         </p>
         <p>
           <% if (graded) { %>
