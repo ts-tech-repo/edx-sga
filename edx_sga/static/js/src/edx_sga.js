@@ -25,11 +25,12 @@ function StaffGradedAssignmentXBlock(runtime, element) {
     );
     var currentIFrameHeight = null;
     var gradePopUpIsOpen = false;
-
+    var deleteFileUrl = runtime.handlerUrl(element, 'delete_file');
     function render(state) {
       // Add download urls to template context
       state.downloadUrl = downloadUrl;
       state.annotatedUrl = annotatedUrl;
+      state.deleteFileUrl = deleteFileUrl;
       state.error = state.error || false;
 
       // Render template
@@ -48,6 +49,12 @@ function StaffGradedAssignmentXBlock(runtime, element) {
           }
         );
       });
+
+      $(".delete_file").on("click", function() {
+        $.get(deleteFileUrl + "?uuid=" + $(this).attr("id")).success(function() {
+          window.location = window.location.href
+        }).fail()
+      })
 
       // Set up file upload
       var fileUpload = $(content).find('.fileupload').fileupload({
@@ -141,6 +148,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
       // Add download urls to template context
       data.downloadUrl = staffDownloadUrl;
       data.annotatedUrl = staffAnnotatedUrl;
+      
 
       // Render template
       $(element).find('#grade-info')

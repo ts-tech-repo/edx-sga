@@ -229,10 +229,10 @@ class StaffGradedAssignmentXBlock(
         # Validate points before saving
         points = data.get("points", self.points)
         # Check that we are an int
-        # try:
-        #     points = int(points)
-        # except ValueError:
-        #     raise JsonHandlerError(400, "Points must be an integer")
+        try:
+            points = float(points)
+        except ValueError:
+            raise JsonHandlerError(400, "Points must be an integer")
         # Check that we are positive
         if points < 0:
             raise JsonHandlerError(400, "Points must be a positive integer")
@@ -350,9 +350,13 @@ class StaffGradedAssignmentXBlock(
         """
         Fetch student assignment from storage and return it.
         """
-        answer = self.get_submission()["answer"]
-        path = self.file_storage_path(answer["sha1"], answer["filename"])
-        return self.download(path, answer["mimetype"], answer["filename"])
+        submissions = self.get_submission()
+        for submission in submissions:
+            answer = submission["answer"]
+            if answer["filename"] != request.params["filename"]:
+                continue
+            path = self.file_storage_path(answer["sha1"], answer["filename"])
+            return self.download(path, answer["mimetype"], answer["filename"])
 
     @XBlock.handler
     def download_annotated(self, request, suffix=""):
@@ -373,12 +377,13 @@ class StaffGradedAssignmentXBlock(
         Return an assignment file requested by staff.
         """
         require(self.is_course_staff())
-        submission = self.get_submission(request.params["student_id"])
-        answer = submission["answer"]
-        path = self.file_storage_path(answer["sha1"], answer["filename"])
-        return self.download(
-            path, answer["mimetype"], answer["filename"], require_staff=True
-        )
+        submissions = self.get_submission(request.params["student_id"])
+        for submission in submissions:
+            answer = submission["answer"]
+            if answer["filename"] != request.params["filename"]:
+                continue
+            path = self.file_storage_path(answer["sha1"], answer["filename"])
+            return self.download(path, answer["mimetype"], answer["filename"], require_staff=True)
 
     @XBlock.handler
     def staff_download_annotated(self, request, suffix=""):
@@ -425,14 +430,14 @@ class StaffGradedAssignmentXBlock(
             )
 
         state = json.loads(module.state)
-        # try:
-        #     score = int(score)
-        # except ValueError:
-        #     return Response(
-        #         json_body=self.validate_score_message(
-        #             module.course_id, module.student.username
-        #         )
-        #     )
+        try:
+            score = float(score)
+        except ValueError:
+            return Response(
+                json_body=self.validate_score_message(
+                    module.course_id, module.student.username
+                )
+            )
 
         if self.is_instructor():
             uuid = request.params["submission_id"]
@@ -574,6 +579,23 @@ class StaffGradedAssignmentXBlock(
         user = self.get_real_user()
         require(user)
         return Response(json_body={"zip_available": self.is_zip_file_available(user)})
+    
+    @XBlock.handler
+    def delete_file(self, request, suffix=""):
+        submissions = self.get_submission()
+        for submission in submissions:
+            submission_filename = submission["answer"].get("filename")
+            if submission.get("uuid") != request.params["uuid"]:
+                continue
+            submission_file_sha1 = submission["answer"].get("sha1")
+            submission_file_path = self.file_storage_path(
+                submission_file_sha1, submission_filename
+            )
+            if default_storage.exists(submission_file_path):
+                default_storage.delete(submission_file_path)
+
+            remove_submission = submissions_api.remove_submission(request.params["uuid"])
+        return Response(json_body={"student_state" : self.student_state()})
 
     def student_view(self, context=None):
         # pylint: disable=no-member
@@ -752,13 +774,14 @@ class StaffGradedAssignmentXBlock(
         Returns a JSON serializable representation of student's state for
         rendering in client view.
         """
+        submissions, submission = self.get_submission(), []
         filenames = []
-        for submission in self.get_submission():
-            if submission:
+        if submissions:
+            for submission in submissions:
                 filenames.append({"filename" : submission["answer"]["filename"], "submission_id" : submission["uuid"]})
                 # uploaded = {"filename": submission["answer"]["filename"]}
-            else:
-                uploaded = None
+        else:
+            uploaded = None
 
         if self.annotated_sha1:
             annotated = {"filename": force_str(self.annotated_filename)}
@@ -778,7 +801,7 @@ class StaffGradedAssignmentXBlock(
         # pylint: disable=no-member
         return {
             "display_name": force_str(self.display_name),
-            "uploaded": {"filenames" : filenames if filenames else None},
+            "uploaded": filenames if filenames else None,
             "annotated": annotated,
             "graded": graded,
             "max_score": self.max_score(),
@@ -836,7 +859,7 @@ class StaffGradedAssignmentXBlock(
                     "submission_id": uuid,
                     "username": student_module.student.username,
                     "fullname": student_module.student.profile.name,
-                    "filename": ",".join(filenames),
+                    "filename": filenames,
                     "timestamp": created_at.strftime(
                         DateTime.DATETIME_FORMAT
                     ),

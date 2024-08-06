@@ -26,8 +26,9 @@
       <div class="sequential-status-message">
         <p>
           <b>{% trans "Files uploaded" %}</b>
-          <% for (var i = 0; i < uploaded.filenames.length; i++) { %>
-            <a href="<%= downloadUrl?uuid=uploaded.filenames[i].submission_id %>"><%= uploaded.filenames[i].filename %></a><button type = "submit" id = "<%= uploaded.filenames[i].submission_id %>">Delete file</button><br>
+          <% for (var i = 0; i < uploaded.length; i++) { %>
+            <a href="<%= downloadUrl %>?filename=<%= uploaded[i].filename %>"><%= uploaded[i].filename %></a>
+            <button class = "delete_file" id = "<%= uploaded[i].submission_id %>">Delete File </button><br>
           <% } %>
         </p>
         <p>
@@ -91,9 +92,11 @@
           <td><%= assignment.fullname %></td>
           <td>
             <% if (assignment.filename) { %>
-              <a href="<%= downloadUrl %>?student_id=<%= assignment.student_id %>">
-                <%= assignment.filename %>
-              </a>
+              <% for (var i = 0; i < assignment.filename.length; i++) { %>
+                <a href="<%= downloadUrl %>?student_id=<%= assignment.student_id %>&filename=<%= assignment.filename[i] %>">
+                  <%= assignment.filename[i] %> 
+                </a><br>
+              <% } %>
             <% } %>
           </td>
           <td><%= assignment.timestamp %></td>
