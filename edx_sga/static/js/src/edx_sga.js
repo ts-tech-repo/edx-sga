@@ -25,11 +25,12 @@ function StaffGradedAssignmentXBlock(runtime, element) {
     );
     var currentIFrameHeight = null;
     var gradePopUpIsOpen = false;
-
+    var deleteFileUrl = runtime.handlerUrl(element, 'delete_file');
     function render(state) {
       // Add download urls to template context
       state.downloadUrl = downloadUrl;
       state.annotatedUrl = annotatedUrl;
+      state.deleteFileUrl = deleteFileUrl;
       state.error = state.error || false;
 
       // Render template
@@ -48,6 +49,12 @@ function StaffGradedAssignmentXBlock(runtime, element) {
           }
         );
       });
+
+      $(".delete_file").on("click", function() {
+        $.get(deleteFileUrl + "?uuid=" + $(this).attr("id")).success(function() {
+          window.location = window.location.href
+        }).fail()
+      })
 
       // Set up file upload
       var fileUpload = $(content).find('.fileupload').fileupload({
@@ -88,6 +95,12 @@ function StaffGradedAssignmentXBlock(runtime, element) {
              * limit is.
              */
             state.error = gettext('The file you are trying to upload is too large.');
+          }if (data.jqXHR.status === 414) {
+            /* I guess we have no way of knowing what the limit is
+             * here, so no good way to inform the user of what the
+             * limit is.
+             */
+            state.error = gettext(data.jqXHR.responseText);
           } else {
             // Suitably vague
             state.error = gettext('There was an error uploading your file.');
@@ -97,6 +110,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
             console.log('There was an error with file upload.');
             console.log('event: ', e);
             console.log('data: ', data);
+            console.log(data.jqXHR.responseText)
           }
           render(state);
         },
@@ -141,6 +155,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
       // Add download urls to template context
       data.downloadUrl = staffDownloadUrl;
       data.annotatedUrl = staffAnnotatedUrl;
+      
 
       // Render template
       $(element).find('#grade-info')
