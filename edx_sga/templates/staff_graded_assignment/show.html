@@ -86,48 +86,47 @@
       </thead>
       <tbody>
       <% for (var i = 0; i < assignments.length; i++) { %>
-      <%     var assignment = assignments[i]; %>
-        <tr id="row-<%= assignment.module_id %>"<% if (!assignment.finalized) { %> class="not-finalized"<% } %>>
-          <td><%= assignment.username %></td>
-          <td><%= assignment.fullname %></td>
+        <tr id="row-<%= assignments[i].module_id %>" <% if (!assignments[i].finalized) { %> class="not-finalized"<% } %>>
+          <td><%= assignments[i].username %></td>
+          <td><%= assignments[i].fullname %></td>
           <td>
-            <% if (assignment.filename) { %>
-              <% for (var i = 0; i < assignment.filename.length; i++) { %>
-                <a href="<%= downloadUrl %>?student_id=<%= assignment.student_id %>&filename=<%= assignment.filename[i] %>">
-                  <%= assignment.filename[i] %> 
+            <% if (assignments[i].filename) { %>
+              <% for (var j = 0; j < assignments[i].filename.length; j++) { %>
+                <a href="<%= downloadUrl %>?student_id=<%= assignments[i].student_id %>&filename=<%= assignments[i].filename[j] %>">
+                  <%= assignments[i].filename[j] %> 
                 </a><br>
               <% } %>
             <% } %>
           </td>
-          <td><%= assignment.timestamp %></td>
+          <td><%= assignments[i].timestamp %></td>
           <td>
-            <% if (assignment.finalized) { %>
+            <% if (assignments[i].finalized) { %>
               {% trans "Yes" %}
             <% } else { %>
               {% trans "No" %}
             <% } %>
           </td>
           <td>
-            <% if (assignment.score !== null) { %>
-              <%= assignment.score %> /
+            <% if (assignments[i].score !== null) { %>
+              <%= assignments[i].score %> /
               <%= max_score %>
-              <% if (! assignment.approved) { %>
+              <% if (! assignments[i].approved) { %>
                 ({% trans "Awaiting instructor approval" %})
               <% } %>
             <% } %>
           </td>
-          <td><%= assignment.comment %></td>
+          <td><%= assignments[i].comment %></td>
           <td>
-            <% if (assignment.annotated && assignment.annotated != "None") { %>
-              <a href="<%= annotatedUrl %>?module_id=<%= assignment.module_id %>">
-                <%= assignment.annotated %>
+            <% if (assignments[i].annotated && assignments[i].annotated != "None") { %>
+              <a href="<%= annotatedUrl %>?module_id=<%= assignments[i].module_id %>">
+                <%= assignments[i].annotated %>
               </a>
             <% } %>
           </td>
           <td>
-            <% if (assignment.may_grade) { %>
+            <% if (assignments[i].may_grade) { %>
               <a class="enter-grade-button button" href="#enter-grade-{{ id }}">
-                <% if (assignment.needs_approval) { %>
+                <% if (assignments[i].needs_approval) { %>
                   {% trans "Approve grade" %}
                 <% } else { %>
                   {% trans "Enter grade" %}
