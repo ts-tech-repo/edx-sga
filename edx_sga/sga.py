@@ -269,12 +269,6 @@ class StaffGradedAssignmentXBlock(
         require(self.upload_allowed())
         user = self.get_real_user()
         require(user)
-        submissions = self.get_submission()
-        if submissions and self.fileuploadcount <= len(submissions):
-            return Response(
-                "Unable to upload File. Max files limit is {0}".format(self.fileuploadcount),
-                status_code=414,
-            )
         upload = request.params["assignment"]
         sha1 = get_sha1(upload.file)
         if self.file_size_over_limit(upload.file):
