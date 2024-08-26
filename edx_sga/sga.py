@@ -88,6 +88,7 @@ class StaffGradedAssignmentXBlock(
     icon_class = "problem"
     STUDENT_FILEUPLOAD_MAX_SIZE = 4 * 1000 * 1000  # 4 MB
     editable_fields = ("display_name", "points", "weight", "showanswer", "solution")
+    show_in_read_only_mode = True
 
     display_name = String(
         display_name=_("Display Name"),
