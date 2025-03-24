@@ -36,7 +36,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
       var content = $(element).find('#sga-content').html(template(state));
 
       $(content).find('.finalize-upload').on('click', function () {
-        $.post(finalizeUploadUrl).success(
+        $.post(finalizeUploadUrl).done(
           function (state) {
             state.uploadSuccess = true;
             render(state);
