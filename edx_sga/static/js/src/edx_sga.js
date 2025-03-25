@@ -258,7 +258,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
           // No errors
           form.find('.ccx-enter-grade-spinner').show();
           $.post(enterGradeUrl, form.serialize())
-            .success(renderStaffGrading)
+            .done(renderStaffGrading)
             .fail(function () {
               form.find('.ccx-enter-grade-spinner').hide();
             });
@@ -273,7 +273,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
         event.preventDefault();
         if (row.data('score')) {
           // if there is no grade then it is pointless to call api.
-          $.get(url).success(renderStaffGrading).fail(function () {
+          $.get(url).done(renderStaffGrading).fail(function () {
             $(this).prop('disabled', false);
             form.find('.ccx-enter-grade-spinner').hide();
           });
