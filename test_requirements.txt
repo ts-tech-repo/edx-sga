@@ -1,7 +1,7 @@
 # maintain the latest version
 celery==5.3.0
 coverage==7.2.7
-cryptography==41.0.1
+cryptography==44.0.2
 ddt==1.6.0
 djangorestframework
 django-storages
@@ -15,7 +15,7 @@ pdbpp==0.10.3
 pylint==2.12.2
 pylint-celery==0.3
 pylint-django==2.5.3
-pyOpenSSL==23.2.0
+pyOpenSSL==24.3.0
 pytz==2023.3
 pytest==7.3.1
 pytest-cov==4.1.0
