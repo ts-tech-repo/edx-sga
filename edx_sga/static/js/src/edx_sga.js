@@ -349,9 +349,17 @@ function StaffGradedAssignmentXBlock(runtime, element) {
           e.preventDefault();
           var self = this;
           $(self).addClass("disabled");
+          $(element).find('.task-message')
+          .show()
+          .html(preparingSubmissionsMsg)
+          .removeClass("ready-msg")
+          .addClass("preparing-msg");
+
           $.get(prepareDownloadSubmissionsUrl).then(
             function (data) {
               if (data["downloadable"]) {
+                $(element).find('.task-message')
+                .hide();
                 var downloadLink = document.createElement('a');
                 downloadLink.href = downloadSubmissionsUrl; 
                 downloadLink.download = '';
@@ -359,13 +367,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
                 downloadLink.click(); 
                 document.body.removeChild(downloadLink);
                 $(self).removeClass("disabled");
-              } else {
-                $(self).addClass("disabled");
-                $(element).find('.task-message')
-                  .show()
-                  .html(preparingSubmissionsMsg)
-                  .removeClass("ready-msg")
-                  .addClass("preparing-msg");
+              } else {               
                 pollSubmissionDownload();
               }
             }
