@@ -348,7 +348,6 @@ function StaffGradedAssignmentXBlock(runtime, element) {
         $(element).find('#download-init-button').click(function (e) {
           e.preventDefault();
           var self = this;
-          $(self).addClass("disabled");
           $.get(prepareDownloadSubmissionsUrl).then(
             function (data) {
               if (data["downloadable"]) {
