@@ -345,7 +345,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
         block.find('#staff-debug-info-button')
           .leanModal();
 
-        $(element).find('#download-init-button').click(function (e) {
+        $(element).on('click', '#download-init-button', function (e) {
           e.preventDefault();
           var self = this;
           $.get(prepareDownloadSubmissionsUrl).then(
