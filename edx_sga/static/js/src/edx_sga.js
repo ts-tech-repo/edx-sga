@@ -41,7 +41,6 @@ function StaffGradedAssignmentXBlock(runtime, element) {
             state.uploadSuccess = true;
             render(state);
             $(element).find('#download-init-button').removeClass('disabled');
-            pollSubmissionDownload(); 
           }
         ).fail(
           function () {
@@ -436,32 +435,28 @@ function StaffGradedAssignmentXBlock(runtime, element) {
     }
 
     function pollSubmissionDownload() {
-      // Poll the server for the status of the downloadable file
       pollUntilSuccess(downloadSubmissionsStatusUrl, checkResponse, 10000, 100).then(function () {
-          $(element).find('#download-init-button').removeClass("disabled");
-          $(element).find('.task-message')
-              .show()
-              .html(gettext("Student submission file ready for download"))
-              .removeClass("preparing-msg")
-              .addClass("ready-msg");
+        $(element).find('#download-init-button').removeClass("disabled");
+        $(element).find('.task-message')
+          .show()
+          .html(gettext("Student submission file ready for download"))
+          .removeClass("preparing-msg")
+          .addClass("ready-msg");
       }).fail(function () {
-          $(element).find('#download-init-button').removeClass("disabled");
-          $(element).find('.task-message')
-              .show()
-              .html(
-                  interpolate(
-                      gettext(
-                          'The download file was not created. Please try again or contact %(support_email)s'
-                      ),
-                      { support_email: $(element).find('.sga-block').attr("data-support-email") },
-                      true
-                  )
-              )
-              .removeClass("preparing-msg")
-              .addClass("ready-msg");
+        $(element).find('#download-init-button').removeClass("disabled");
+        $(element).find('.task-message')
+          .show()
+          .html(
+            interpolate(
+              gettext(
+                'The download file was not created. Please try again or contact %(support_email)s'
+              ),
+              { support_email: $(element).find('.sga-block').attr("data-support-email") },
+              true
+            )
+          );
       });
-  }
-  
+    }
   }
 
   function checkResponse(response) {
