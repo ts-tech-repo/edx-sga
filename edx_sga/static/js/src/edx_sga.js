@@ -40,7 +40,6 @@ function StaffGradedAssignmentXBlock(runtime, element) {
           function (state) {
             state.uploadSuccess = true;
             render(state);
-            $(element).find('#download-init-button').removeClass('disabled');
           }
         ).fail(
           function () {
