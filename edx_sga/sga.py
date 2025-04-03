@@ -531,7 +531,7 @@ class StaffGradedAssignmentXBlock(
                 self.block_course_id, self.block_id, location, user.username
             )
 
-        return Response(json_body={"downloadable": zip_file_ready})
+        return Response(json_body={"downloadable": True})
 
     @XBlock.handler
     def download_submissions(
