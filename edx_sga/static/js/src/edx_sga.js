@@ -370,6 +370,8 @@ function StaffGradedAssignmentXBlock(runtime, element) {
             }
           ).fail(
             function () {
+            var supportEmail = $(self).closest('iframe').contents().find('.support_email').text().trim();
+          
               $(self).removeClass("disabled");
               $(element).find('.task-message')
                 .show()
@@ -378,7 +380,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
                     gettext(
                       'The download file was not created. Please try again or contact %(support_email)s'
                     ),
-                    { support_email: $(element).find('.sga-block').attr("data-support-email") },
+                    { support_email: supportEmail },
                     true
                   )
                 )
