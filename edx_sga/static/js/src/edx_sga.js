@@ -358,6 +358,10 @@ function StaffGradedAssignmentXBlock(runtime, element) {
                 downloadLink.click(); 
                 document.body.removeChild(downloadLink);
                 $(self).removeClass("disabled");
+                $(element).find('.task-message')
+                .hide()
+                .addClass("preparing-msg")
+                .removeClass("ready-msg");
               } else {
                 $(self).addClass("disabled");
                 $(element).find('.task-message')
@@ -370,7 +374,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
             }
           ).fail(
             function () {
-            var supportEmail = $(self).closest('iframe').contents().find('.support_email').text().trim();
+              var supportEmail = window.parent.document.querySelector('.support_email')?.textContent.trim();
           
               $(self).removeClass("disabled");
               $(element).find('.task-message')
