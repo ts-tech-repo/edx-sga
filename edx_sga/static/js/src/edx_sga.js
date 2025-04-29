@@ -444,6 +444,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
           .removeClass("preparing-msg")
           .addClass("ready-msg");
       }).fail(function () {
+        var supportEmail = window.parent.document.querySelector('.support_email')?.textContent.trim();
         $(element).find('#download-init-button').removeClass("disabled");
         $(element).find('.task-message')
           .show()
@@ -452,7 +453,7 @@ function StaffGradedAssignmentXBlock(runtime, element) {
               gettext(
                 'The download file was not created. Please try again or contact %(support_email)s'
               ),
-              { support_email: $(element).find('.sga-block').attr("data-support-email") },
+              { support_email: supportEmail },
               true
             )
           );
