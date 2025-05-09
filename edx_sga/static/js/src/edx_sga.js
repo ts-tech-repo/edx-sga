@@ -358,6 +358,10 @@ function StaffGradedAssignmentXBlock(runtime, element) {
                 downloadLink.click(); 
                 document.body.removeChild(downloadLink);
                 $(self).removeClass("disabled");
+                $(element).find('.task-message')
+                .hide()
+                .addClass("preparing-msg")
+                .removeClass("ready-msg");
               } else {
                 $(self).addClass("disabled");
                 $(element).find('.task-message')
